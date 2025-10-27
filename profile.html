@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>个人信息</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .info { margin: 10px 0; }
+    button { padding: 8px 16px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>个人信息</h2>
+  <div id="profile"></div>
+  <button onclick="window.location.href='student.html'">返回</button>
+
+  <script>
+    async function fetchProfile() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('请先登录！');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      try {
+        const response = await fetch('https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg/profile', {
+          method: 'GET',
+          headers: {
+            'X-User-ID': user.id  // ← 关键：传用户ID
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const p = data.data;
+          document.getElementById('profile').innerHTML = `
+            <div class="info"><strong>学号：</strong>${p.id}</div>
+            <div class="info"><strong>姓名：</strong>${p.name}</div>
+            <div class="info"><strong>班级：</strong>${p.class || '无'}</div>
+            <div class="info"><strong>角色：</strong>${p.role === 'student' ? '学生' : '教师'}</div>
+          `;
+        } else {
+          alert('获取信息失败：' + data.message);
+          console.error(data);
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        alert('网络错误，请重试');
+      }
+    }
+
+    fetchProfile();
+  </script>
+</body>
+</html>
