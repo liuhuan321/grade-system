@@ -3,20 +3,309 @@
 <head>
   <meta charset="utf-8">
   <title>教师主页</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: #2c3e50;
+      color: white;
+      padding: 20px 0;
+    }
+    .sidebar h3 {
+      padding: 0 20px;
+      margin-bottom: 20px;
+    }
+    .sidebar button {
+      display: block;
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      border: none;
+      background: #34495e;
+      color: white;
+      text-align: left;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .sidebar button:hover {
+      background: #3d566e;
+    }
+    .sidebar button.active {
+      background: #3498db;
+    }
+    .main {
+      flex: 1;
+      padding: 20px;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .actions button {
+      margin-right: 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    .edit-input {
+      width: 60px;
+      padding: 5px;
+    }
+    .course-item {
+      cursor: pointer;
+      padding: 10px;
+      border-bottom: 1px solid #4a5f7a;
+    }
+    .course-item:hover {
+      background: #3d566e;
+    }
+    .course-item.active {
+      background: #3498db;
+    }
+    .course-detail-header {
+      margin: 20px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+    }
+  </style>
 </head>
 <body>
-  <h2>教师主页</h2>
-  <p>你好，<span id="name"></span>！</p>
-  <p>功能开发中...</p>
-  <button onclick="localStorage.removeItem('user'); location.href='index.html'">退出登录</button>
+  <div class="container">
+    <div class="sidebar">
+      <h3>教师功能</h3>
+      <button id="btn-courses" class="active">课程列表</button>
+      <button id="btn-upload">成绩录入</button>
+      <button id="btn-info">信息管理</button>
+      <button onclick="logout()">退出登录</button>
+    </div>
+
+    <div class="main">
+      <!-- 课程列表主视图 -->
+      <div id="section-courses" class="section active">
+        <h2>我的课程</h2>
+        <div id="courses-list"></div>
+        <div id="course-detail" style="display:none;">
+          <div class="course-detail-header">
+            <h3 id="detail-title"></h3>
+            <button onclick="backToCourseList()">← 返回课程列表</button>
+          </div>
+          <table id="grades-table">
+            <thead>
+              <tr>
+                <th>学号</th>
+                <th>姓名</th>
+                <th>分数</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="grades-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 成绩录入 -->
+      <div id="section-upload" class="section">
+        <h2>成绩录入</h2>
+        <p>功能开发中...（可复用你之前的上传逻辑）</p>
+      </div>
+
+      <!-- 信息管理 -->
+      <div id="section-info" class="section">
+        <h2>信息管理</h2>
+        <p>功能开发中...</p>
+      </div>
+    </div>
+  </div>
 
   <script>
+    const API_BASE = 'https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg';
     const user = JSON.parse(localStorage.getItem('user'));
+
     if (!user || user.role !== 'teacher') {
       alert('请先登录！');
       location.href = 'index.html';
     }
+
     document.getElementById('name').textContent = user.name;
+
+    // 导航切换
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.sidebar button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
+    }
+
+    document.getElementById('btn-courses').onclick = () => showSection('section-courses');
+    document.getElementById('btn-upload').onclick = () => showSection('section-upload');
+    document.getElementById('btn-info').onclick = () => showSection('section-info');
+
+    function logout() {
+      localStorage.removeItem('user');
+      location.href = 'index.html';
+    }
+
+    // ========================
+    // 课程列表与成绩管理逻辑
+    // ========================
+
+    let currentCourse = null;
+
+    // 1. 加载课程列表
+    async function loadCourses() {
+      try {
+        const res = await fetch(`${API_BASE}/teacher/grades`, {
+          headers: { 'X-User-ID': user.id }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+
+        const list = document.getElementById('courses-list');
+        list.innerHTML = data.data.map(course => `
+          <div class="course-item" onclick="loadCourseGrades('${course.course_name}', '${course.semester}')">
+            <strong>${course.course_name}</strong><br>
+            学期: ${course.semester} | 学生: ${course.student_count}人
+          </div>
+        `).join('');
+      } catch (err) {
+        alert('加载课程失败: ' + err.message);
+        console.error(err);
+      }
+    }
+
+    // 2. 加载某课程成绩
+    async function loadCourseGrades(course, semester) {
+      currentCourse = { course, semester };
+      try {
+        const encodedCourse = encodeURIComponent(course);
+        const encodedSemester = encodeURIComponent(semester);
+        const url = `${API_BASE}/teacher/grades?course=${encodedCourse}&semester=${encodedSemester}`;
+        
+        const res = await fetch(url, {
+          headers: { 'X-User-ID': user.id }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载成绩失败');
+
+        // 显示详情
+        document.getElementById('detail-title').innerText = `${course} - ${semester}`;
+        const tbody = document.getElementById('grades-body');
+        tbody.innerHTML = data.data.map(record => `
+          <tr data-id="${record.student_id}_${record.course_semester}">
+            <td>${record.student_id}</td>
+            <td>${record.student_name}</td>
+            <td class="score-cell" data-score="${record.score}">
+              <span class="score-text">${record.score}</span>
+              <input type="number" class="edit-input" value="${record.score}" min="0" max="100" style="display:none;">
+            </td>
+            <td class="actions">
+              <button onclick="toggleEdit(this, '${record.student_id}', '${record.course_semester}')">编辑</button>
+              <button onclick="deleteRecord('${record.student_id}', '${record.course_semester}')">删除</button>
+            </td>
+          </tr>
+        `).join('');
+
+        document.getElementById('courses-list').style.display = 'none';
+        document.getElementById('course-detail').style.display = 'block';
+      } catch (err) {
+        alert('加载成绩失败: ' + err.message);
+        console.error(err);
+      }
+    }
+
+    // 3. 返回课程列表
+    function backToCourseList() {
+      document.getElementById('courses-list').style.display = 'block';
+      document.getElementById('course-detail').style.display = 'none';
+      currentCourse = null;
+    }
+
+    // 4. 切换编辑模式
+    function toggleEdit(btn, studentId, courseSemester) {
+      const row = btn.closest('tr');
+      const scoreCell = row.querySelector('.score-cell');
+      const text = scoreCell.querySelector('.score-text');
+      const input = scoreCell.querySelector('.edit-input');
+
+      if (btn.innerText === '编辑') {
+        text.style.display = 'none';
+        input.style.display = 'inline';
+        btn.innerText = '保存';
+      } else {
+        // 保存
+        const newScore = parseInt(input.value);
+        if (isNaN(newScore) || newScore < 0 || newScore > 100) {
+          alert('分数必须是 0-100 的整数');
+          return;
+        }
+
+        updateRecord(studentId, courseSemester, newScore)
+          .then(() => {
+            text.innerText = newScore;
+            text.style.display = 'inline';
+            input.style.display = 'none';
+            btn.innerText = '编辑';
+            // 更新原始数据
+            scoreCell.dataset.score = newScore;
+          })
+          .catch(err => {
+            alert('保存失败: ' + err.message);
+          });
+      }
+    }
+
+    // 5. 更新成绩（需后端支持 PUT）
+    async function updateRecord(studentId, courseSemester, score) {
+      // TODO: 你需要实现 PUT /teacher/grades 接口
+      // 这里先模拟成功
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          // 临时：更新本地显示（实际应调用 API）
+          resolve();
+        }, 300);
+      });
+    }
+
+    // 6. 删除记录
+    async function deleteRecord(studentId, courseSemester) {
+      if (!confirm('确定删除该学生成绩？')) return;
+
+      try {
+        // TODO: 你需要实现 DELETE /teacher/grades 接口
+        // 暂时只前端移除
+        const row = document.querySelector(`tr[data-id="${studentId}_${courseSemester}"]`);
+        if (row) row.remove();
+        alert('删除成功（前端模拟）');
+      } catch (err) {
+        alert('删除失败: ' + err.message);
+      }
+    }
+
+    // 初始化
+    loadCourses();
   </script>
 </body>
 </html>
