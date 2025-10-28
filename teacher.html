@@ -180,7 +180,9 @@
 
     // 1. 加载课程列表
     async function loadCourses() {
+      console.log('Sending X-User-ID:', user.id); // 👈 加这行！
       try {
+        
         const res = await fetch(`${API_BASE}/teacher/grades`, {
           headers: { 'X-User-ID': user.id }
         });
