@@ -282,31 +282,36 @@
     }
 
     // 5. 更新成绩（需后端支持 PUT）
-    async function updateRecord(studentId, courseSemester, score) {
-      // TODO: 你需要实现 PUT /teacher/grades 接口
-      // 这里先模拟成功
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // 临时：更新本地显示（实际应调用 API）
-          resolve();
-        }, 300);
-      });
-    }
-
+   async function updateRecord(studentId, courseSemester, score) {
+  const res = await fetch(`${API_BASE}/teacher/grades`, {
+    method: 'PUT',
+    headers: {
+      'X-User-ID': user.id,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ student_id: studentId, course_semester: courseSemester, score })
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+}
     // 6. 删除记录
-    async function deleteRecord(studentId, courseSemester) {
-      if (!confirm('确定删除该学生成绩？')) return;
-
-      try {
-        // TODO: 你需要实现 DELETE /teacher/grades 接口
-        // 暂时只前端移除
-        const row = document.querySelector(`tr[data-id="${studentId}_${courseSemester}"]`);
-        if (row) row.remove();
-        alert('删除成功（前端模拟）');
-      } catch (err) {
-        alert('删除失败: ' + err.message);
-      }
-    }
+  async function deleteRecord(studentId, courseSemester) {
+  if (!confirm('确定删除？')) return;
+  
+  const encodedId = encodeURIComponent(studentId);
+  const encodedCS = encodeURIComponent(courseSemester);
+  const url = `${API_BASE}/teacher/grades?student_id=${encodedId}&course_semester=${encodedCS}`;
+  
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'X-User-ID': user.id }
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  
+  // 前端移除行
+  document.querySelector(`tr[data-id="${studentId}_${courseSemester}"]`).remove();
+}
 
     // 初始化
     loadCourses();
