@@ -272,15 +272,16 @@
     </div>
   </div>
 
-  <script>
-  // 1. 安全读取用户信息
+ <script>
+  // ========== 安全读取用户信息 ==========
   let user = null;
   const userRaw = localStorage.getItem('user');
   if (userRaw) {
     try {
       user = JSON.parse(userRaw);
     } catch (e) {
-      console.error('用户数据损坏:', e);
+      console.error('用户数据解析失败:', e);
+      localStorage.removeItem('user');
     }
   }
 
@@ -289,7 +290,7 @@
     location.href = 'index.html';
   }
 
-  // 2. 等待 DOM 加载完成
+  // ========== 等待 DOM 加载完成 ==========
   document.addEventListener('DOMContentLoaded', () => {
     // 设置用户名
     document.getElementById('name').textContent = user.name;
@@ -308,6 +309,8 @@
     document.getElementById('btn-courses').onclick = () => showSection('section-courses');
     document.getElementById('btn-upload').onclick = () => showSection('section-upload');
     document.getElementById('btn-info').onclick = () => showSection('section-info');
+
+    // 学生管理按钮点击时加载数据
     document.getElementById('btn-students').onclick = () => {
       showSection('section-students');
       loadStudents();
@@ -795,6 +798,7 @@
 
     // 初始化
     loadCourses();
-  </script>
+  });
+</script>
 </body>
 </html>
