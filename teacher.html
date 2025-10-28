@@ -121,7 +121,7 @@
     .form-submit-btn:hover {
       background: #1976D2;
     }
-    #singleGradeResult, #bulkGradeResult {
+    #singleGradeResult, #bulkGradeResult, #addStudentResult {
       margin-top: 10px;
       min-height: 24px;
     }
@@ -137,6 +137,7 @@
       <h3>教师功能</h3>
       <button id="btn-courses" class="active">课程列表</button>
       <button id="btn-upload">成绩录入</button>
+      <button id="btn-students">学生管理</button>
       <button id="btn-info">信息管理</button>
       <button onclick="logout()">退出登录</button>
     </div>
@@ -222,6 +223,47 @@
         </div>
       </div>
 
+      <!-- 学生管理 -->
+      <div id="section-students" class="section">
+        <h2>学生管理</h2>
+
+        <!-- 添加学生表单 -->
+        <div style="max-width: 500px; margin-bottom: 30px;">
+          <h3>添加新学生</h3>
+          <form id="addStudentForm">
+            <div class="form-group">
+              <label for="newStudentId">学号（必填，格式如 S001）</label>
+              <input type="text" id="newStudentId" placeholder="S001" required>
+            </div>
+            <div class="form-group">
+              <label for="newStudentName">姓名（必填）</label>
+              <input type="text" id="newStudentName" placeholder="张三" required>
+            </div>
+            <div class="form-group">
+              <label for="newStudentClass">班级（必填）</label>
+              <input type="text" id="newStudentClass" placeholder="高三(1)班" required>
+            </div>
+            <button type="submit" class="form-submit-btn">添加学生</button>
+            <div id="addStudentResult" style="margin-top: 8px;"></div>
+          </form>
+        </div>
+
+        <!-- 学生列表 -->
+        <h3>学生列表</h3>
+        <table id="students-table">
+          <thead>
+            <tr>
+              <th>学号</th>
+              <th>姓名</th>
+              <th>班级</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="students-body"></tbody>
+        </table>
+        <div id="students-load-message" style="margin-top: 20px; color: #666;">加载中...</div>
+      </div>
+
       <!-- 信息管理 -->
       <div id="section-info" class="section">
         <h2>信息管理</h2>
@@ -246,12 +288,21 @@
       document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.sidebar button').forEach(btn => btn.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
+      const btnId = 'btn-' + id.split('-')[1];
+      if (document.getElementById(btnId)) {
+        document.getElementById(btnId).classList.add('active');
+      }
     }
 
     document.getElementById('btn-courses').onclick = () => showSection('section-courses');
     document.getElementById('btn-upload').onclick = () => showSection('section-upload');
     document.getElementById('btn-info').onclick = () => showSection('section-info');
+
+    // 学生管理按钮点击时加载数据
+    document.getElementById('btn-students').onclick = () => {
+      showSection('section-students');
+      loadStudents();
+    };
 
     function logout() {
       localStorage.removeItem('user');
@@ -415,10 +466,10 @@
 
         resultDiv.innerHTML = `<span style="color: blue;">正在上传 ${records.length} 条成绩...</span>`;
 
-     const payload = {
-  type: 'bulk',      // 注意：是 'bulk'，不是 'batch'！
-  data: records      // records 是数组
-};
+        const payload = {
+          type: 'bulk',
+          data: records
+        };
 
         const response = await fetch(`${API_BASE}/teacher/upload_grades`, {
           method: 'POST',
@@ -574,6 +625,163 @@
       if (!data.success) throw new Error(data.message);
       
       document.querySelector(`tr[data-id="${studentId}_${courseSemester}"]`).remove();
+    }
+
+    // ========================
+    // 学生管理逻辑
+    // ========================
+    async function loadStudents() {
+      const tbody = document.getElementById('students-body');
+      const msg = document.getElementById('students-load-message');
+      try {
+        const res = await fetch(`${API_BASE}/teacher/students`, {
+          headers: { 'X-User-ID': user.id }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+
+        const students = data.students || [];
+        if (students.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">暂无学生</td></tr>';
+          msg.style.display = 'none';
+          return;
+        }
+
+        tbody.innerHTML = students.map(s => `
+          <tr data-id="${s.id}">
+            <td>${s.id}</td>
+            <td class="name-cell" data-name="${s.name}">${s.name}</td>
+            <td class="class-cell" data-class="${s.class}">${s.class}</td>
+            <td class="actions">
+              <button onclick="editStudent('${s.id}', this)">编辑</button>
+              <button onclick="deleteStudent('${s.id}')" style="background:#e74c3c;">删除</button>
+            </td>
+          </tr>
+        `).join('');
+        msg.style.display = 'none';
+      } catch (err) {
+        console.error('加载学生失败:', err);
+        msg.innerHTML = `<span style="color:red;">❌ 加载失败：${err.message}</span>`;
+      }
+    }
+
+    document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const resultDiv = document.getElementById('addStudentResult');
+      resultDiv.innerHTML = '';
+
+      const id = document.getElementById('newStudentId').value.trim();
+      const name = document.getElementById('newStudentName').value.trim();
+      const cls = document.getElementById('newStudentClass').value.trim();
+
+      if (!id || !name || !cls) {
+        resultDiv.innerHTML = '<span style="color:red;">请填写所有字段</span>';
+        return;
+      }
+      if (!id.startsWith('S') || !/^\d+$/.test(id.slice(1))) {
+        resultDiv.innerHTML = '<span style="color:red;">学号格式应为 S+数字（如 S001）</span>';
+        return;
+      }
+
+      try {
+        resultDiv.innerHTML = '<span style="color:blue;">正在添加...</span>';
+        const res = await fetch(`${API_BASE}/teacher/students`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': user.id
+          },
+          body: JSON.stringify({ id, name, class: cls })
+        });
+        const data = await res.json();
+        if (data.success) {
+          resultDiv.innerHTML = '<span style="color:green;">✅ 添加成功！</span>';
+          document.getElementById('addStudentForm').reset();
+          loadStudents();
+        } else {
+          resultDiv.innerHTML = `<span style="color:red;">❌ ${data.message}</span>`;
+        }
+      } catch (err) {
+        console.error('添加学生失败:', err);
+        resultDiv.innerHTML = '<span style="color:red;">❌ 网络错误</span>';
+      }
+    });
+
+    function editStudent(studentId, btn) {
+      const row = btn.closest('tr');
+      const nameCell = row.querySelector('.name-cell');
+      const classCell = row.querySelector('.class-cell');
+
+      const currentName = nameCell.dataset.name;
+      const currentClass = classCell.dataset.class;
+
+      if (btn.innerText === '编辑') {
+        nameCell.innerHTML = `<input type="text" value="${currentName}" class="edit-input" style="width:80px;">`;
+        classCell.innerHTML = `<input type="text" value="${currentClass}" class="edit-input" style="width:100px;">`;
+        btn.innerText = '保存';
+      } else {
+        const newName = nameCell.querySelector('input').value.trim();
+        const newClass = classCell.querySelector('input').value.trim();
+
+        if (!newName || !newClass) {
+          alert('姓名和班级不能为空');
+          return;
+        }
+
+        updateStudent(studentId, newName, newClass)
+          .then(() => {
+            nameCell.innerHTML = newName;
+            nameCell.dataset.name = newName;
+            classCell.innerHTML = newClass;
+            classCell.dataset.class = newClass;
+            btn.innerText = '编辑';
+          })
+          .catch(err => {
+            alert('更新失败: ' + err.message);
+            nameCell.innerHTML = currentName;
+            nameCell.dataset.name = currentName;
+            classCell.innerHTML = currentClass;
+            classCell.dataset.class = currentClass;
+            btn.innerText = '编辑';
+          });
+      }
+    }
+
+    async function updateStudent(id, name, cls) {
+      const res = await fetch(`${API_BASE}/teacher/update_student`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-ID': user.id
+        },
+        body: JSON.stringify({ id, name, class: cls })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+    }
+
+    async function deleteStudent(id) {
+      if (!confirm(`确定删除学生 ${id}？此操作不可恢复！`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/teacher/delete_student`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': user.id
+          },
+          body: JSON.stringify({ student_id: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.querySelector(`tr[data-id="${id}"]`).remove();
+        } else {
+          alert('删除失败: ' + data.message);
+        }
+      } catch (err) {
+        console.error('删除失败:', err);
+        alert('网络错误，请重试');
+      }
     }
 
     // 初始化
