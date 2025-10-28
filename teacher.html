@@ -415,10 +415,7 @@
 
         resultDiv.innerHTML = `<span style="color: blue;">正在上传 ${records.length} 条成绩...</span>`;
 
-        const payload = {
-          type: 'batch',
-          data: records
-        };
+     const payload = records; // 后端可能只接受纯数组
 
         const response = await fetch(`${API_BASE}/teacher/upload_grades`, {
           method: 'POST',
