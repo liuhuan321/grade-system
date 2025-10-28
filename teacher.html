@@ -415,7 +415,10 @@
 
         resultDiv.innerHTML = `<span style="color: blue;">正在上传 ${records.length} 条成绩...</span>`;
 
-     const payload = records; // 后端可能只接受纯数组
+     const payload = {
+  type: 'bulk',      // 注意：是 'bulk'，不是 'batch'！
+  data: records      // records 是数组
+};
 
         const response = await fetch(`${API_BASE}/teacher/upload_grades`, {
           method: 'POST',
