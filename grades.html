@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>学生成绩查询</title>
+  <style>
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .info {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.2em;
+      color: #555;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #4a6fa5;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f5f7fa;
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 20px;
+      font-size: 1.1em;
+    }
+    .error {
+      color: #e74c3c;
+    }
+    .success {
+      color: #27ae60;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎓 学生成绩查询</h1>
+
+  <div id="student-info" class="info">加载中...</div>
+
+  <div id="message"></div>
+
+  <table id="grades-table" style="display:none;">
+    <thead>
+      <tr>
+        <th>课程名称</th>
+        <th>学期</th>
+        <th>成绩</th>
+        <th>任课教师</th>
+      </tr>
+    </thead>
+    <tbody id="grades-body"></tbody>
+  </table>
+
+  <script>
+    // 👇 你可以从 URL 参数、localStorage 或固定值获取学号
+    // 这里假设你通过某种方式知道当前用户是 S2023001
+    // 实际项目中，可能由登录系统提供，或从 URL 读取
+    const userId = 'S2023001'; // 🔧 请根据实际情况修改！
+
+    async function fetchGrades() {
+      const messageEl = document.getElementById('message');
+      const infoEl = document.getElementById('student-info');
+      const tableEl = document.getElementById('grades-table');
+      const tbody = document.getElementById('grades-body');
+
+      try {
+        messageEl.className = 'loading';
+        messageEl.textContent = '正在查询成绩...';
+
+        const response = await fetch('https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg/grades', {
+          method: 'GET',
+          headers: {
+            'X-User-ID': userId
+          }
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || '查询失败');
+        }
+
+        const grades = result.data;
+        if (grades.length === 0) {
+          messageEl.className = 'error';
+          messageEl.textContent = '暂无成绩记录';
+          infoEl.textContent = `学生 ID: ${userId}`;
+          return;
+        }
+
+        // 显示学生信息
+        const studentName = grades[0].student_name;
+        infoEl.textContent = `${studentName}（学号：${userId}）的成绩单`;
+
+        // 清空表格
+        tbody.innerHTML = '';
+
+        // 填充成绩
+        grades.forEach(record => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${record.course_name}</td>
+            <td>${record.semester}</td>
+            <td><strong>${record.score}</strong></td>
+            <td>${record.teacher_id}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // 显示表格
+        tableEl.style.display = 'table';
+        messageEl.textContent = '';
+      } catch (error) {
+        console.error('Fetch error:', error);
+        document.getElementById('student-info').textContent = '';
+        messageEl.className = 'error';
+        messageEl.textContent = `❌ ${error.message}`;
+      }
+    }
+
+    // 页面加载时自动查询
+    window.addEventListener('DOMContentLoaded', fetchGrades);
+  </script>
+</body>
+</html>
