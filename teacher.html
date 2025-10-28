@@ -669,6 +669,14 @@
       e.preventDefault();
       const resultDiv = document.getElementById('addStudentResult');
       resultDiv.innerHTML = '';
+       // 添加调试信息
+      console.log('当前用户信息:', user);
+      console.log('user.id:', user.id);
+  
+      if (!user || !user.id) {
+      resultDiv.innerHTML = '<span style="color:red;">用户信息不完整，请重新登录</span>';
+        return;
+      }
 
       const id = document.getElementById('newStudentId').value.trim();
       const name = document.getElementById('newStudentName').value.trim();
