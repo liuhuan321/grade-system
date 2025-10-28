@@ -273,14 +273,25 @@
   </div>
 
   <script>
-    const API_BASE = 'https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg';
-    const user = JSON.parse(localStorage.getItem('user'));
-
-    if (!user || user.role !== 'teacher') {
-      alert('请先登录！');
-      location.href = 'index.html';
+  // 1. 安全读取用户信息
+  let user = null;
+  const userRaw = localStorage.getItem('user');
+  if (userRaw) {
+    try {
+      user = JSON.parse(userRaw);
+    } catch (e) {
+      console.error('用户数据损坏:', e);
     }
+  }
 
+  if (!user || user.role !== 'teacher') {
+    alert('请先登录！');
+    location.href = 'index.html';
+  }
+
+  // 2. 等待 DOM 加载完成
+  document.addEventListener('DOMContentLoaded', () => {
+    // 设置用户名
     document.getElementById('name').textContent = user.name;
 
     // 导航切换
@@ -297,8 +308,6 @@
     document.getElementById('btn-courses').onclick = () => showSection('section-courses');
     document.getElementById('btn-upload').onclick = () => showSection('section-upload');
     document.getElementById('btn-info').onclick = () => showSection('section-info');
-
-    // 学生管理按钮点击时加载数据
     document.getElementById('btn-students').onclick = () => {
       showSection('section-students');
       loadStudents();
