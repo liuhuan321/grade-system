@@ -272,28 +272,15 @@
     </div>
   </div>
 
- <script>
-   const API_BASE = 'https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg';
-  // ========== 安全读取用户信息 ==========
-  let user = null;
-  const userRaw = localStorage.getItem('user');
-  if (userRaw) {
-    try {
-      user = JSON.parse(userRaw);
-    } catch (e) {
-      console.error('用户数据解析失败:', e);
-      localStorage.removeItem('user');
+<script>
+    const API_BASE = 'https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg';
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    if (!user || user.role !== 'teacher') {
+      alert('请先登录！');
+      location.href = 'index.html';
     }
-  }
 
-  if (!user || user.role !== 'teacher') {
-    alert('请先登录！');
-    location.href = 'index.html';
-  }
-
-  // ========== 等待 DOM 加载完成 ==========
-  document.addEventListener('DOMContentLoaded', () => {
-    // 设置用户名
     document.getElementById('name').textContent = user.name;
 
     // 导航切换
@@ -799,7 +786,6 @@
 
     // 初始化
     loadCourses();
-  });
-</script>
+  </script>
 </body>
 </html>
