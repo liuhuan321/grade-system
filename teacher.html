@@ -418,16 +418,24 @@
     // 时间段设置逻辑
     // ========================
     async function loadTimePeriod() {
-      try {
-        const res = await fetch(`${API_BASE}/teacher/time`, {
-          headers: { 'X-User-ID': user.id }
-        });
-        
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        
-        const data = await res.json();
+     try {
+    console.log('正在获取时间段设置...');
+    console.log('用户ID:', user.id);
+    
+    const res = await fetch(`${API_BASE}/teacher/time`, {
+      headers: { 'X-User-ID': user.id }
+    });
+    
+    console.log('响应状态:', res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('响应内容:', errorText);
+      throw new Error(`HTTP error! status: ${res.status}, response: ${errorText}`);
+    }
+    
+    const data = await res.json();
+    console.log('时间段数据:', data);
         if (data.success) {
           // 更新显示
           const startTime = data.start_time ? new Date(data.start_time).toLocaleString('zh-CN') : '未设置';
