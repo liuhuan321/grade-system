@@ -665,55 +665,56 @@
       }
     }
 
-    document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const resultDiv = document.getElementById('addStudentResult');
-      resultDiv.innerHTML = '';
-       // 添加调试信息
-      console.log('当前用户信息:', user);
-      console.log('user.id:', user.id);
-  
-      if (!user || !user.id) {
-      resultDiv.innerHTML = '<span style="color:red;">用户信息不完整，请重新登录</span>';
-        return;
-      }
+   document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const resultDiv = document.getElementById('addStudentResult');
+  resultDiv.innerHTML = '';
 
-      const id = document.getElementById('newStudentId').value.trim();
-      const name = document.getElementById('newStudentName').value.trim();
-      const cls = document.getElementById('newStudentClass').value.trim();
+  const id = document.getElementById('newStudentId').value.trim();
+  const name = document.getElementById('newStudentName').value.trim();
+  const cls = document.getElementById('newStudentClass').value.trim();
 
-      if (!id || !name || !cls) {
-        resultDiv.innerHTML = '<span style="color:red;">请填写所有字段</span>';
-        return;
-      }
-      if (!id.startsWith('S') || !/^\d+$/.test(id.slice(1))) {
-        resultDiv.innerHTML = '<span style="color:red;">学号格式应为 S+数字（如 S001）</span>';
-        return;
-      }
+  if (!id || !name || !cls) {
+    resultDiv.innerHTML = '<span style="color:red;">请填写所有字段</span>';
+    return;
+  }
+  if (!id.startsWith('S') || !/^\d+$/.test(id.slice(1))) {
+    resultDiv.innerHTML = '<span style="color:red;">学号格式应为 S+数字（如 S001）</span>';
+    return;
+  }
 
-      try {
-        resultDiv.innerHTML = '<span style="color:blue;">正在添加...</span>';
-        const res = await fetch(`${API_BASE}/teacher/students`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-ID': user.id
-          },
-          body: JSON.stringify({ id, name, class: cls })
-        });
-        const data = await res.json();
-        if (data.success) {
-          resultDiv.innerHTML = '<span style="color:green;">✅ 添加成功！</span>';
-          document.getElementById('addStudentForm').reset();
-          loadStudents();
-        } else {
-          resultDiv.innerHTML = `<span style="color:red;">❌ ${data.message}</span>`;
-        }
-      } catch (err) {
-        console.error('添加学生失败:', err);
-        resultDiv.innerHTML = '<span style="color:red;">❌ 网络错误</span>';
-      }
+  try {
+    resultDiv.innerHTML = '<span style="color:blue;">正在添加...</span>';
+    
+    // 调试信息
+    console.log('发送请求头 X-User-ID:', user.id);
+    
+    const res = await fetch(`${API_BASE}/teacher/students`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-ID': user.id
+      },
+      body: JSON.stringify({ id, name, class: cls })
     });
+    
+    // 检查响应状态
+    console.log('响应状态:', res.status);
+    const data = await res.json();
+    console.log('响应数据:', data);
+    
+    if (data.success) {
+      resultDiv.innerHTML = '<span style="color:green;">✅ 添加成功！</span>';
+      document.getElementById('addStudentForm').reset();
+      loadStudents();
+    } else {
+      resultDiv.innerHTML = `<span style="color:red;">❌ ${data.message}</span>`;
+    }
+  } catch (err) {
+    console.error('添加学生失败:', err);
+    resultDiv.innerHTML = '<span style="color:red;">❌ 网络错误，请检查控制台</span>';
+  }
+});
 
     function editStudent(studentId, btn) {
       const row = btn.closest('tr');
