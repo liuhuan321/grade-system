@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>教师主页</title>
+  <!-- 引入 SheetJS 用于解析 Excel/CSV -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -119,7 +121,7 @@
     .form-submit-btn:hover {
       background: #1976D2;
     }
-    #singleGradeResult {
+    #singleGradeResult, #bulkGradeResult {
       margin-top: 10px;
       min-height: 24px;
     }
@@ -165,36 +167,59 @@
 
       <!-- 成绩录入 -->
       <div id="section-upload" class="section">
+        <!-- 单个录入 -->
         <h2>录入单个学生成绩</h2>
         <form id="singleGradeForm" style="max-width: 500px;">
           <div class="form-group">
             <label for="studentId">学号（必填）</label>
             <input type="text" id="studentId" placeholder="例如：S001" required>
           </div>
-
           <div class="form-group">
             <label for="studentName">学生姓名（可选）</label>
             <input type="text" id="studentName" placeholder="例如：张三">
           </div>
-
           <div class="form-group">
             <label for="courseName">课程名称（必填）</label>
             <input type="text" id="courseName" placeholder="例如：数学" required>
           </div>
-
           <div class="form-group">
             <label for="semester">学期（必填）</label>
             <input type="text" id="semester" placeholder="例如：2024-秋" required>
           </div>
-
           <div class="form-group">
             <label for="score">分数（0–100，必填）</label>
             <input type="number" id="score" min="0" max="100" step="0.1" placeholder="例如：90" required>
           </div>
-
           <button type="submit" class="form-submit-btn">保存成绩</button>
           <div id="singleGradeResult"></div>
         </form>
+
+        <!-- 批量录入 -->
+        <h2 style="margin-top: 40px;">批量录入成绩（Excel/CSV）</h2>
+        <div style="max-width: 500px; margin-top: 15px;">
+          <p>请上传包含以下列的 Excel (.xlsx) 或 CSV 文件：</p>
+          <ul>
+            <li><strong>学号</strong>（必填）</li>
+            <li><strong>姓名</strong>（可选）</li>
+            <li><strong>分数</strong>（必填，0–100）</li>
+          </ul>
+          <p>系统将自动使用当前教师所授的<strong>课程名称</strong>和<strong>学期</strong>（需手动填写）。</p>
+
+          <div class="form-group">
+            <label for="bulkCourseName">课程名称（必填）</label>
+            <input type="text" id="bulkCourseName" placeholder="例如：数学" required>
+          </div>
+          <div class="form-group">
+            <label for="bulkSemester">学期（必填）</label>
+            <input type="text" id="bulkSemester" placeholder="例如：2024-秋" required>
+          </div>
+          <div class="form-group">
+            <label for="gradeFile">选择文件（.xlsx, .xls, .csv）</label>
+            <input type="file" id="gradeFile" accept=".xlsx,.xls,.csv">
+          </div>
+          <button type="button" class="form-submit-btn" onclick="uploadGradeFile()">上传并解析</button>
+          <div id="bulkGradeResult"></div>
+        </div>
       </div>
 
       <!-- 信息管理 -->
@@ -238,7 +263,6 @@
     // ========================
     document.getElementById('singleGradeForm').addEventListener('submit', async function(event) {
       event.preventDefault();
-
       const resultDiv = document.getElementById('singleGradeResult');
       resultDiv.innerHTML = '';
 
@@ -248,22 +272,18 @@
       const semester = document.getElementById('semester').value.trim();
       const score = parseFloat(document.getElementById('score').value);
 
-      // 前端校验
       if (!studentId) {
         resultDiv.innerHTML = '<span style="color: red;">请输入学号</span>';
         return;
       }
-
       if (!courseName) {
         resultDiv.innerHTML = '<span style="color: red;">请输入课程名称</span>';
         return;
       }
-
       if (!semester) {
         resultDiv.innerHTML = '<span style="color: red;">请输入学期</span>';
         return;
       }
-
       if (isNaN(score) || score < 0 || score > 100) {
         resultDiv.innerHTML = '<span style="color: red;">分数必须是 0 到 100 之间的数字</span>';
         return;
@@ -282,7 +302,6 @@
 
       try {
         resultDiv.innerHTML = '<span style="color: blue;">正在保存...</span>';
-
         const response = await fetch(`${API_BASE}/teacher/upload_grades`, {
           method: 'POST',
           headers: {
@@ -291,9 +310,7 @@
           },
           body: JSON.stringify(payload)
         });
-
         const result = await response.json();
-
         if (result.success) {
           resultDiv.innerHTML = '<span style="color: green;">✅ 成绩保存成功！</span>';
           document.getElementById('singleGradeForm').reset();
@@ -307,14 +324,133 @@
     });
 
     // ========================
+    // 批量成绩上传逻辑
+    // ========================
+    async function uploadGradeFile() {
+      const fileInput = document.getElementById('gradeFile');
+      const courseName = document.getElementById('bulkCourseName').value.trim();
+      const semester = document.getElementById('bulkSemester').value.trim();
+      const resultDiv = document.getElementById('bulkGradeResult');
+
+      resultDiv.innerHTML = '';
+
+      if (!courseName) {
+        resultDiv.innerHTML = '<span style="color: red;">请输入课程名称</span>';
+        return;
+      }
+      if (!semester) {
+        resultDiv.innerHTML = '<span style="color: red;">请输入学期</span>';
+        return;
+      }
+      if (!fileInput.files[0]) {
+        resultDiv.innerHTML = '<span style="color: red;">请选择一个文件</span>';
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+        resultDiv.innerHTML = '<span style="color: red;">仅支持 .xlsx、.xls 或 .csv 文件</span>';
+        return;
+      }
+
+      try {
+        resultDiv.innerHTML = '<span style="color: blue;">正在解析文件...</span>';
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        if (jsonData.length < 2) {
+          resultDiv.innerHTML = '<span style="color: red;">文件为空或格式不正确</span>';
+          return;
+        }
+
+        const headers = jsonData[0].map(h => (h || '').toString().trim());
+        const rows = jsonData.slice(1);
+
+        const studentIdCol = headers.findIndex(h => /学号|student[_\s]?id/i.test(h));
+        const nameCol = headers.findIndex(h => /姓名|name/i.test(h));
+        const scoreCol = headers.findIndex(h => /分数|score|grade/i.test(h));
+
+        if (studentIdCol === -1 || scoreCol === -1) {
+          resultDiv.innerHTML = '<span style="color: red;">文件缺少“学号”或“分数”列</span>';
+          return;
+        }
+
+        const records = [];
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0) continue;
+
+          const studentId = (row[studentIdCol] || '').toString().trim();
+          if (!studentId) continue;
+
+          const studentName = nameCol !== -1 ? (row[nameCol] || '').toString().trim() : '';
+          let score = row[scoreCol];
+
+          if (typeof score === 'string') score = parseFloat(score.replace(/[%％]/g, ''));
+          if (typeof score !== 'number' || isNaN(score)) {
+            resultDiv.innerHTML = `<span style="color: red;">第 ${i + 2} 行：分数格式错误（"${row[scoreCol]}"）</span>`;
+            return;
+          }
+          if (score < 0 || score > 100) {
+            resultDiv.innerHTML = `<span style="color: red;">第 ${i + 2} 行：分数必须在 0–100 之间</span>`;
+            return;
+          }
+
+          records.push({
+            student_id: studentId,
+            student_name: studentName,
+            course_name: courseName,
+            semester: semester,
+            score: parseFloat(score.toFixed(1))
+          });
+        }
+
+        if (records.length === 0) {
+          resultDiv.innerHTML = '<span style="color: red;">未找到有效成绩数据</span>';
+          return;
+        }
+
+        resultDiv.innerHTML = `<span style="color: blue;">正在上传 ${records.length} 条成绩...</span>`;
+
+        const payload = {
+          type: 'batch',
+          data: records
+        };
+
+        const response = await fetch(`${API_BASE}/teacher/upload_grades`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': user.id
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          resultDiv.innerHTML = `<span style="color: green;">✅ 成功上传 ${records.length} 条成绩！</span>`;
+          document.getElementById('gradeFile').value = '';
+          document.getElementById('bulkCourseName').value = '';
+          document.getElementById('bulkSemester').value = '';
+        } else {
+          resultDiv.innerHTML = `<span style="color: red;">❌ 上传失败：${result.message || '未知错误'}</span>`;
+        }
+
+      } catch (err) {
+        console.error('文件解析失败:', err);
+        resultDiv.innerHTML = `<span style="color: red;">❌ 文件解析错误：${err.message}</span>`;
+      }
+    }
+
+    // ========================
     // 课程列表与成绩管理逻辑
     // ========================
-
     let currentCourse = null;
 
-    // 1. 加载课程列表
     async function loadCourses() {
-      console.log('Sending X-User-ID:', user.id);
       try {
         const res = await fetch(`${API_BASE}/teacher/grades`, {
           headers: { 'X-User-ID': user.id }
@@ -335,7 +471,6 @@
       }
     }
 
-    // 2. 加载某课程成绩
     async function loadCourseGrades(course, semester) {
       currentCourse = { course, semester };
       try {
@@ -374,14 +509,12 @@
       }
     }
 
-    // 3. 返回课程列表
     function backToCourseList() {
       document.getElementById('courses-list').style.display = 'block';
       document.getElementById('course-detail').style.display = 'none';
       currentCourse = null;
     }
 
-    // 4. 切换编辑模式
     function toggleEdit(btn, studentId, courseSemester) {
       const row = btn.closest('tr');
       const scoreCell = row.querySelector('.score-cell');
@@ -413,7 +546,6 @@
       }
     }
 
-    // 5. 更新成绩
     async function updateRecord(studentId, courseSemester, score) {
       const res = await fetch(`${API_BASE}/teacher/grades`, {
         method: 'PUT',
@@ -427,7 +559,6 @@
       if (!data.success) throw new Error(data.message);
     }
 
-    // 6. 删除记录
     async function deleteRecord(studentId, courseSemester) {
       if (!confirm('确定删除？')) return;
       
