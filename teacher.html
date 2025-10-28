@@ -138,7 +138,6 @@
       <button id="btn-courses" class="active">课程列表</button>
       <button id="btn-upload">成绩录入</button>
       <button id="btn-students">学生管理</button>
-      <button id="btn-info">信息管理</button>
       <button onclick="logout()">退出登录</button>
     </div>
 
@@ -263,12 +262,6 @@
         </table>
         <div id="students-load-message" style="margin-top: 20px; color: #666;">加载中...</div>
       </div>
-
-      <!-- 信息管理 -->
-      <div id="section-info" class="section">
-        <h2>信息管理</h2>
-        <p>功能开发中...</p>
-      </div>
     </div>
   </div>
 
@@ -296,7 +289,6 @@
 
     document.getElementById('btn-courses').onclick = () => showSection('section-courses');
     document.getElementById('btn-upload').onclick = () => showSection('section-upload');
-    document.getElementById('btn-info').onclick = () => showSection('section-info');
 
     // 学生管理按钮点击时加载数据
     document.getElementById('btn-students').onclick = () => {
@@ -425,7 +417,7 @@
         const scoreCol = headers.findIndex(h => /分数|score|grade/i.test(h));
 
         if (studentIdCol === -1 || scoreCol === -1) {
-          resultDiv.innerHTML = '<span style="color: red;">文件缺少“学号”或“分数”列</span>';
+          resultDiv.innerHTML = '<span style="color: red;">文件缺少"学号"或"分数"列</span>';
           return;
         }
 
