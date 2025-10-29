@@ -214,6 +214,53 @@
       font-size: 14px;
     }
     
+    .time-status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status-inactive {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .status-unknown {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--dark-gray);
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(52, 152, 219, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
     /* 底部样式 */
     footer {
       text-align: center;
@@ -289,28 +336,15 @@
         <p>查看您在所有课程中的成绩、考试结果和学业进展。</p>
         <a href="grades.html" class="card-btn accent">查询成绩</a>
       </div>
-      
-      <div class="card">
-        <div class="card-icon">
-          <i>📚</i>
-        </div>
-        <h3>课程信息</h3>
-        <p>查看您当前和历史的课程安排、教师信息和课程资料。</p>
-        <a href="courses.html" class="card-btn">查看课程</a>
-      </div>
     </div>
     
     <div class="notifications">
-      <h2>系统通知</h2>
-      <div class="notification-item">
-        <div class="notification-title">成绩查询时间安排</div>
-        <div class="notification-date">2023年11月15日</div>
-        <p>本学期成绩查询时间为：2023年12月20日 - 2024年1月10日</p>
-      </div>
-      <div class="notification-item">
-        <div class="notification-title">期末考试安排</div>
-        <div class="notification-date">2023年11月10日</div>
-        <p>期末考试将于2023年12月15日开始，请各位同学做好准备。</p>
+      <h2>成绩查询时段通知</h2>
+      <div id="time-period-notification">
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span>正在获取成绩查询时段信息...</span>
+        </div>
       </div>
     </div>
     
@@ -320,6 +354,8 @@
   </div>
 
   <script>
+    const API_BASE = 'https://b9vwa2nxmd.execute-api.us-east-1.amazonaws.com/beg';
+    
     // 获取用户信息
     const user = JSON.parse(localStorage.getItem('user'));
     
@@ -340,6 +376,72 @@
       }
     }
     
+    // 获取成绩查询时间段
+    async function loadTimePeriod() {
+      const notificationEl = document.getElementById('time-period-notification');
+      
+      try {
+        const res = await fetch(`${API_BASE}/teacher/time`, {
+          headers: { 'X-User-ID': user.id }
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          const startTime = data.start_time ? new Date(data.start_time).toLocaleString('zh-CN') : '未设置';
+          const endTime = data.end_time ? new Date(data.end_time).toLocaleString('zh-CN') : '未设置';
+          
+          // 更新状态
+          const now = new Date();
+          const start = data.start_time ? new Date(data.start_time) : null;
+          const end = data.end_time ? new Date(data.end_time) : null;
+          
+          let statusText = '';
+          let statusClass = '';
+          
+          if (start && end) {
+            if (now >= start && now <= end) {
+              statusText = '当前在查询时间段内，可以查询成绩';
+              statusClass = 'status-active';
+            } else if (now < start) {
+              statusText = '成绩查询尚未开始';
+              statusClass = 'status-inactive';
+            } else {
+              statusText = '成绩查询已结束';
+              statusClass = 'status-inactive';
+            }
+          } else {
+            statusText = '成绩查询时间段未设置';
+            statusClass = 'status-unknown';
+          }
+          
+          notificationEl.innerHTML = `
+            <div class="notification-item">
+              <div class="notification-title">成绩查询时间段</div>
+              <p>开始时间：${startTime}</p>
+              <p>结束时间：${endTime}</p>
+              <div class="time-status ${statusClass}">${statusText}</div>
+            </div>
+          `;
+        } else {
+          throw new Error(data.message || '获取时间段失败');
+        }
+      } catch (err) {
+        console.error('加载时间段失败:', err);
+        notificationEl.innerHTML = `
+          <div class="notification-item">
+            <div class="notification-title">成绩查询时间段</div>
+            <p>无法获取成绩查询时间段信息</p>
+            <div class="time-status status-unknown">请联系管理员设置成绩查询时间</div>
+          </div>
+        `;
+      }
+    }
+    
     // 添加页面加载动画
     window.addEventListener('load', function() {
       document.body.style.opacity = 0;
@@ -348,8 +450,10 @@
       setTimeout(function() {
         document.body.style.opacity = 1;
       }, 100);
+      
+      // 加载成绩查询时间段
+      loadTimePeriod();
     });
   </script>
 </body>
 </html>
-
