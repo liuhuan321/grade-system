@@ -1,379 +1,766 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>教师主页</title>
+  <title>教师主页 - 成绩管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- 引入 SheetJS 用于解析 Excel/CSV -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
+    :root {
+      --primary-color: #3498db;
+      --primary-dark: #2980b9;
+      --secondary-color: #2c3e50;
+      --accent-color: #2ecc71;
+      --light-gray: #f8f9fa;
+      --medium-gray: #e9ecef;
+      --dark-gray: #6c757d;
+      --danger-color: #e74c3c;
+      --warning-color: #f39c12;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+    
+    * {
       margin: 0;
       padding: 0;
-      background-color: #f5f5f5;
+      box-sizing: border-box;
     }
+    
+    body {
+      font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      color: var(--secondary-color);
+      line-height: 1.6;
+    }
+    
     .container {
       display: flex;
       min-height: 100vh;
     }
+    
+    /* 侧边栏样式 */
     .sidebar {
-      width: 250px;
-      background: #2c3e50;
+      width: 280px;
+      background: var(--secondary-color);
       color: white;
-      padding: 20px 0;
+      padding: 0;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 100;
     }
+    
+    .user-info {
+      padding: 25px 20px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .user-info .welcome {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 5px;
+    }
+    
+    .user-info .name {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
     .sidebar h3 {
-      padding: 0 20px;
-      margin-bottom: 20px;
+      padding: 20px;
+      margin-bottom: 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
+    
     .sidebar button {
-      display: block;
+      display: flex;
+      align-items: center;
       width: 100%;
-      padding: 12px 20px;
-      margin: 8px 0;
+      padding: 14px 20px;
+      margin: 0;
       border: none;
-      background: #34495e;
-      color: white;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.8);
       text-align: left;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 15px;
+      transition: var(--transition);
+      border-left: 3px solid transparent;
     }
+    
     .sidebar button:hover {
-      background: #3d566e;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
     }
+    
     .sidebar button.active {
-      background: #3498db;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border-left-color: var(--primary-color);
     }
+    
+    .sidebar button i {
+      margin-right: 12px;
+      font-size: 18px;
+    }
+    
+    .btn-logout {
+      margin-top: 20px;
+      background: rgba(231, 76, 60, 0.2) !important;
+      color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    .btn-logout:hover {
+      background: rgba(231, 76, 60, 0.3) !important;
+    }
+    
+    /* 主内容区样式 */
     .main {
       flex: 1;
-      padding: 20px;
+      padding: 25px;
+      overflow-y: auto;
     }
+    
     .section {
       display: none;
+      animation: fadeIn 0.5s ease;
     }
+    
     .section.active {
       display: block;
     }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 卡片样式 */
+    .card {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 25px;
+      margin-bottom: 25px;
+      transition: var(--transition);
+    }
+    
+    .card:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    
+    .card h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--secondary-color);
+      display: flex;
+      align-items: center;
+    }
+    
+    .card h2:before {
+      margin-right: 10px;
+      font-size: 26px;
+    }
+    
+    /* 课程列表样式 */
+    .course-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .course-card {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 20px;
+      transition: var(--transition);
+      cursor: pointer;
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .course-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--secondary-color);
+    }
+    
+    .course-card p {
+      color: var(--dark-gray);
+      font-size: 14px;
+    }
+    
+    /* 表格样式 */
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 15px;
     }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
+    
+    thead {
+      background: var(--light-gray);
     }
+    
     th {
-      background-color: #f2f2f2;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--secondary-color);
+      border-bottom: 2px solid var(--medium-gray);
     }
+    
+    td {
+      padding: 15px;
+      border-bottom: 1px solid var(--medium-gray);
+    }
+    
+    tbody tr {
+      transition: var(--transition);
+    }
+    
+    tbody tr:hover {
+      background: rgba(52, 152, 219, 0.05);
+    }
+    
     .actions button {
       margin-right: 5px;
-      padding: 5px 10px;
-      font-size: 14px;
-    }
-    .edit-input {
-      width: 60px;
-      padding: 5px;
-    }
-    .course-item {
-      cursor: pointer;
-      padding: 10px;
-      border-bottom: 1px solid #4a5f7a;
-    }
-    .course-item:hover {
-      background: #3d566e;
-    }
-    .course-item.active {
-      background: #3498db;
-    }
-    .course-detail-header {
-      margin: 20px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #3498db;
-    }
-
-    /* 表单样式优化 */
-    .form-group {
-      margin-bottom: 15px;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 4px;
-      font-weight: bold;
-    }
-    .form-group input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    .form-submit-btn {
-      padding: 10px 20px;
-      background: #2196F3;
-      color: white;
+      padding: 6px 12px;
+      font-size: 13px;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .btn-edit {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-edit:hover {
+      background: var(--primary-dark);
+    }
+    
+    .btn-delete {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    .btn-delete:hover {
+      background: #c0392b;
+    }
+    
+    .edit-input {
+      width: 70px;
+      padding: 6px;
+      border: 1px solid var(--medium-gray);
+      border-radius: 4px;
+    }
+    
+    /* 表单样式 */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--secondary-color);
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid var(--medium-gray);
+      border-radius: var(--border-radius);
+      font-size: 15px;
+      transition: var(--transition);
+      background-color: var(--light-gray);
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      background-color: white;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    .form-submit-btn {
+      padding: 12px 25px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
       font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
     }
+    
     .form-submit-btn:hover {
-      background: #1976D2;
+      background: var(--primary-dark);
+      transform: translateY(-2px);
     }
-    #singleGradeResult, #bulkGradeResult, #addStudentResult {
-      margin-top: 10px;
-      min-height: 24px;
+    
+    .form-submit-btn:active {
+      transform: translateY(0);
+    }
+    
+    /* 结果消息样式 */
+    .result-message {
+      margin-top: 15px;
+      padding: 12px 15px;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+    }
+    
+    .result-success {
+      background: rgba(46, 204, 113, 0.1);
+      color: var(--accent-color);
+      border: 1px solid rgba(46, 204, 113, 0.2);
+    }
+    
+    .result-error {
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--danger-color);
+      border: 1px solid rgba(231, 76, 60, 0.2);
+    }
+    
+    .result-info {
+      background: rgba(52, 152, 219, 0.1);
+      color: var(--primary-color);
+      border: 1px solid rgba(52, 152, 219, 0.2);
     }
     
     /* 时间段设置样式 */
     .time-period-section {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 25px;
-      border: 1px solid #e9ecef;
-    }
-    .time-period-section h3 {
-      margin-top: 0;
-      color: #2c3e50;
-      border-bottom: 1px solid #dee2e6;
-      padding-bottom: 10px;
-    }
-    .time-display {
       background: white;
-      padding: 15px;
-      border-radius: 6px;
-      margin-bottom: 15px;
-      border: 1px solid #dee2e6;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 25px;
+      margin-bottom: 25px;
     }
+    
+    .time-period-section h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--secondary-color);
+      display: flex;
+      align-items: center;
+    }
+    
+    .time-period-section h3:before {
+      content: "⏰";
+      margin-right: 10px;
+      font-size: 22px;
+    }
+    
+    .time-display {
+      background: var(--light-gray);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+      border: 1px solid var(--medium-gray);
+    }
+    
     .time-display p {
-      margin: 8px 0;
+      margin: 10px 0;
       font-size: 16px;
     }
+    
     .time-display strong {
-      color: #2c3e50;
+      color: var(--secondary-color);
     }
+    
     .edit-time-btn {
-      background: #28a745;
+      background: var(--accent-color);
       color: white;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: 10px 20px;
+      border-radius: var(--border-radius);
       cursor: pointer;
-      font-size: 14px;
+      font-size: 15px;
+      font-weight: 500;
+      transition: var(--transition);
     }
+    
     .edit-time-btn:hover {
-      background: #218838;
+      background: #27ae60;
+      transform: translateY(-2px);
     }
+    
     .time-form {
-      background: white;
-      padding: 20px;
-      border-radius: 6px;
-      border: 1px solid #dee2e6;
+      background: var(--light-gray);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--medium-gray);
     }
+    
     .form-actions {
-      margin-top: 15px;
+      margin-top: 20px;
       display: flex;
       gap: 10px;
     }
+    
     .cancel-btn {
-      background: #6c757d;
+      background: var(--dark-gray);
       color: white;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: 10px 20px;
+      border-radius: var(--border-radius);
       cursor: pointer;
-      font-size: 14px;
+      font-size: 15px;
+      transition: var(--transition);
     }
+    
     .cancel-btn:hover {
       background: #5a6268;
     }
+    
     .current-status {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 4px;
-      font-weight: bold;
+      margin-top: 15px;
+      padding: 12px 15px;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+      text-align: center;
     }
+    
     .status-active {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background: rgba(46, 204, 113, 0.1);
+      color: var(--accent-color);
+      border: 1px solid rgba(46, 204, 113, 0.2);
     }
+    
     .status-inactive {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background: rgba(243, 156, 18, 0.1);
+      color: var(--warning-color);
+      border: 1px solid rgba(243, 156, 18, 0.2);
+    }
+    
+    .status-error {
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--danger-color);
+      border: 1px solid rgba(231, 76, 60, 0.2);
+    }
+    
+    /* 文件上传样式 */
+    .file-upload {
+      border: 2px dashed var(--medium-gray);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    
+    .file-upload:hover {
+      border-color: var(--primary-color);
+      background: rgba(52, 152, 219, 0.05);
+    }
+    
+    .file-upload p {
+      margin-bottom: 15px;
+      color: var(--dark-gray);
+    }
+    
+    /* 加载状态 */
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: var(--dark-gray);
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(52, 152, 219, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 15px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 1024px) {
+      .container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: auto;
+      }
+      
+      .sidebar-nav {
+        display: flex;
+        overflow-x: auto;
+      }
+      
+      .sidebar button {
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+        text-align: center;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+      }
+      
+      .sidebar button.active {
+        border-left: none;
+        border-bottom-color: var(--primary-color);
+      }
+      
+      .sidebar button i {
+        margin-right: 0;
+        margin-bottom: 5px;
+        display: block;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .main {
+        padding: 15px;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .course-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="sidebar">
-      <div style="padding: 15px; text-align: center; border-bottom: 1px solid #3d566e;">
-        <div>欢迎</div>
-        <div><strong><span id="name"></span></strong></div>
+      <div class="user-info">
+        <div class="welcome">欢迎</div>
+        <div class="name"><span id="name"></span></div>
       </div>
+      
       <h3>教师功能</h3>
-      <button id="btn-courses" class="active">课程列表</button>
-      <button id="btn-upload">成绩录入</button>
-      <button id="btn-students">学生管理</button>
-      <button onclick="logout()">退出登录</button>
+      <div class="sidebar-nav">
+        <button id="btn-courses" class="active">
+          <i>📚</i> 课程列表
+        </button>
+        <button id="btn-upload">
+          <i>📝</i> 成绩录入
+        </button>
+        <button id="btn-students">
+          <i>👥</i> 学生管理
+        </button>
+        <button onclick="logout()" class="btn-logout">
+          <i>🚪</i> 退出登录
+        </button>
+      </div>
     </div>
 
     <div class="main">
       <!-- 课程列表主视图 -->
       <div id="section-courses" class="section active">
-        <h2>我的课程</h2>
-        
-        <!-- 学生成绩查询时间段设置 -->
-        <div class="time-period-section">
-          <h3>学生成绩查询时间段设置</h3>
-          <div id="time-period-display">
-            <div class="time-display">
-              <p><strong>当前设置：</strong></p>
-              <p>开始时间：<span id="current-start-time">--</span></p>
-              <p>结束时间：<span id="current-end-time">--</span></p>
-              <div id="current-status" class="current-status status-inactive">状态：未设置</div>
+        <div class="card">
+          <h2>📚 我的课程</h2>
+          
+          <!-- 学生成绩查询时间段设置 -->
+          <div class="time-period-section">
+            <h3>学生成绩查询时间段设置</h3>
+            <div id="time-period-display">
+              <div class="time-display">
+                <p><strong>当前设置：</strong></p>
+                <p>开始时间：<span id="current-start-time">--</span></p>
+                <p>结束时间：<span id="current-end-time">--</span></p>
+                <div id="current-status" class="current-status status-inactive">状态：未设置</div>
+              </div>
+              <button class="edit-time-btn" onclick="showTimeForm()">修改时间段</button>
             </div>
-            <button class="edit-time-btn" onclick="showTimeForm()">修改时间段</button>
+            <div id="time-period-form" class="time-form" style="display: none;">
+              <h4>设置学生查询时间段</h4>
+              <form id="timePeriodForm">
+                <div class="form-group">
+                  <label for="startTime">开始时间：</label>
+                  <input type="datetime-local" id="startTime" required>
+                </div>
+                <div class="form-group">
+                  <label for="endTime">结束时间：</label>
+                  <input type="datetime-local" id="endTime" required>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="form-submit-btn">保存设置</button>
+                  <button type="button" class="cancel-btn" onclick="hideTimeForm()">取消</button>
+                </div>
+                <div id="timePeriodResult" class="result-message"></div>
+              </form>
+            </div>
           </div>
-          <div id="time-period-form" class="time-form" style="display: none;">
-            <h4>设置学生查询时间段</h4>
-            <form id="timePeriodForm">
-              <div class="form-group">
-                <label for="startTime">开始时间：</label>
-                <input type="datetime-local" id="startTime" required>
-              </div>
-              <div class="form-group">
-                <label for="endTime">结束时间：</label>
-                <input type="datetime-local" id="endTime" required>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="form-submit-btn">保存设置</button>
-                <button type="button" class="cancel-btn" onclick="hideTimeForm()">取消</button>
-              </div>
-              <div id="timePeriodResult" style="margin-top: 10px;"></div>
-            </form>
-          </div>
-        </div>
 
-        <div id="courses-list"></div>
-        <div id="course-detail" style="display:none;">
-          <div class="course-detail-header">
-            <h3 id="detail-title"></h3>
-            <button onclick="backToCourseList()">← 返回课程列表</button>
+          <div id="courses-list" class="course-grid"></div>
+          
+          <div id="course-detail" style="display:none;">
+            <div class="card">
+              <h3 id="detail-title"></h3>
+              <button class="form-submit-btn" onclick="backToCourseList()">← 返回课程列表</button>
+            </div>
+            
+            <div class="card">
+              <table id="grades-table">
+                <thead>
+                  <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>分数</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="grades-body"></tbody>
+              </table>
+            </div>
           </div>
-          <table id="grades-table">
-            <thead>
-              <tr>
-                <th>学号</th>
-                <th>姓名</th>
-                <th>分数</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="grades-body"></tbody>
-          </table>
         </div>
       </div>
 
       <!-- 成绩录入 -->
       <div id="section-upload" class="section">
-        <!-- 单个录入 -->
-        <h2>录入单个学生成绩</h2>
-        <form id="singleGradeForm" style="max-width: 500px;">
-          <div class="form-group">
-            <label for="studentId">学号（必填）</label>
-            <input type="text" id="studentId" placeholder="例如：S001" required>
+        <div class="card">
+          <h2>📝 成绩录入</h2>
+          
+          <!-- 单个录入 -->
+          <div class="card" style="margin-bottom: 30px;">
+            <h3>录入单个学生成绩</h3>
+            <form id="singleGradeForm">
+              <div class="form-group">
+                <label for="studentId">学号（必填）</label>
+                <input type="text" id="studentId" placeholder="例如：S001" required>
+              </div>
+              <div class="form-group">
+                <label for="studentName">学生姓名（可选）</label>
+                <input type="text" id="studentName" placeholder="例如：张三">
+              </div>
+              <div class="form-group">
+                <label for="courseName">课程名称（必填）</label>
+                <input type="text" id="courseName" placeholder="例如：数学" required>
+              </div>
+              <div class="form-group">
+                <label for="semester">学期（必填）</label>
+                <input type="text" id="semester" placeholder="例如：2024-秋" required>
+              </div>
+              <div class="form-group">
+                <label for="score">分数（0–100，必填）</label>
+                <input type="number" id="score" min="0" max="100" step="0.1" placeholder="例如：90" required>
+              </div>
+              <button type="submit" class="form-submit-btn">保存成绩</button>
+              <div id="singleGradeResult" class="result-message"></div>
+            </form>
           </div>
-          <div class="form-group">
-            <label for="studentName">学生姓名（可选）</label>
-            <input type="text" id="studentName" placeholder="例如：张三">
-          </div>
-          <div class="form-group">
-            <label for="courseName">课程名称（必填）</label>
-            <input type="text" id="courseName" placeholder="例如：数学" required>
-          </div>
-          <div class="form-group">
-            <label for="semester">学期（必填）</label>
-            <input type="text" id="semester" placeholder="例如：2024-秋" required>
-          </div>
-          <div class="form-group">
-            <label for="score">分数（0–100，必填）</label>
-            <input type="number" id="score" min="0" max="100" step="0.1" placeholder="例如：90" required>
-          </div>
-          <button type="submit" class="form-submit-btn">保存成绩</button>
-          <div id="singleGradeResult"></div>
-        </form>
 
-        <!-- 批量录入 -->
-        <h2 style="margin-top: 40px;">批量录入成绩（Excel/CSV）</h2>
-        <div style="max-width: 500px; margin-top: 15px;">
-          <p>请上传包含以下列的 Excel (.xlsx) 或 CSV 文件：</p>
-          <ul>
-            <li><strong>学号</strong>（必填）</li>
-            <li><strong>姓名</strong>（可选）</li>
-            <li><strong>分数</strong>（必填，0–100）</li>
-          </ul>
-          <p>系统将自动使用当前教师所授的<strong>课程名称</strong>和<strong>学期</strong>（需手动填写）。</p>
+          <!-- 批量录入 -->
+          <div class="card">
+            <h3>批量录入成绩（Excel/CSV）</h3>
+            <p>请上传包含以下列的 Excel (.xlsx) 或 CSV 文件：</p>
+            <ul style="margin: 15px 0; padding-left: 20px;">
+              <li><strong>学号</strong>（必填）</li>
+              <li><strong>姓名</strong>（可选）</li>
+              <li><strong>分数</strong>（必填，0–100）</li>
+            </ul>
+            <p>系统将自动使用当前教师所授的<strong>课程名称</strong>和<strong>学期</strong>（需手动填写）。</p>
 
-          <div class="form-group">
-            <label for="bulkCourseName">课程名称（必填）</label>
-            <input type="text" id="bulkCourseName" placeholder="例如：数学" required>
+            <form>
+              <div class="form-group">
+                <label for="bulkCourseName">课程名称（必填）</label>
+                <input type="text" id="bulkCourseName" placeholder="例如：数学" required>
+              </div>
+              <div class="form-group">
+                <label for="bulkSemester">学期（必填）</label>
+                <input type="text" id="bulkSemester" placeholder="例如：2024-秋" required>
+              </div>
+              <div class="file-upload">
+                <p>将文件拖放到此处，或点击选择文件</p>
+                <input type="file" id="gradeFile" accept=".xlsx,.xls,.csv">
+              </div>
+              <button type="button" class="form-submit-btn" onclick="uploadGradeFile()">上传并解析</button>
+              <div id="bulkGradeResult" class="result-message"></div>
+            </form>
           </div>
-          <div class="form-group">
-            <label for="bulkSemester">学期（必填）</label>
-            <input type="text" id="bulkSemester" placeholder="例如：2024-秋" required>
-          </div>
-          <div class="form-group">
-            <label for="gradeFile">选择文件（.xlsx, .xls, .csv）</label>
-            <input type="file" id="gradeFile" accept=".xlsx,.xls,.csv">
-          </div>
-          <button type="button" class="form-submit-btn" onclick="uploadGradeFile()">上传并解析</button>
-          <div id="bulkGradeResult"></div>
         </div>
       </div>
 
       <!-- 学生管理 -->
       <div id="section-students" class="section">
-        <h2>学生管理</h2>
+        <div class="card">
+          <h2>👥 学生管理</h2>
 
-        <!-- 添加学生表单 -->
-        <div style="max-width: 500px; margin-bottom: 30px;">
-          <h3>添加新学生</h3>
-          <form id="addStudentForm">
-            <div class="form-group">
-              <label for="newStudentId">学号（必填，格式如 S001）</label>
-              <input type="text" id="newStudentId" placeholder="S001" required>
+          <!-- 添加学生表单 -->
+          <div class="card" style="margin-bottom: 30px;">
+            <h3>添加新学生</h3>
+            <form id="addStudentForm">
+              <div class="form-group">
+                <label for="newStudentId">学号（必填，格式如 S001）</label>
+                <input type="text" id="newStudentId" placeholder="S001" required>
+              </div>
+              <div class="form-group">
+                <label for="newStudentName">姓名（必填）</label>
+                <input type="text" id="newStudentName" placeholder="张三" required>
+              </div>
+              <div class="form-group">
+                <label for="newStudentClass">班级（必填）</label>
+                <input type="text" id="newStudentClass" placeholder="高三(1)班" required>
+              </div>
+              <button type="submit" class="form-submit-btn">添加学生</button>
+              <div id="addStudentResult" class="result-message"></div>
+            </form>
+          </div>
+
+          <!-- 学生列表 -->
+          <div class="card">
+            <h3>学生列表</h3>
+            <table id="students-table">
+              <thead>
+                <tr>
+                  <th>学号</th>
+                  <th>姓名</th>
+                  <th>班级</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="students-body"></tbody>
+            </table>
+            <div id="students-load-message" class="loading" style="display: none;">
+              <div class="loading-spinner"></div>
+              <p>加载中...</p>
             </div>
-            <div class="form-group">
-              <label for="newStudentName">姓名（必填）</label>
-              <input type="text" id="newStudentName" placeholder="张三" required>
-            </div>
-            <div class="form-group">
-              <label for="newStudentClass">班级（必填）</label>
-              <input type="text" id="newStudentClass" placeholder="高三(1)班" required>
-            </div>
-            <button type="submit" class="form-submit-btn">添加学生</button>
-            <div id="addStudentResult" style="margin-top: 8px;"></div>
-          </form>
+          </div>
         </div>
-
-        <!-- 学生列表 -->
-        <h3>学生列表</h3>
-        <table id="students-table">
-          <thead>
-            <tr>
-              <th>学号</th>
-              <th>姓名</th>
-              <th>班级</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="students-body"></tbody>
-        </table>
-        <div id="students-load-message" style="margin-top: 20px; color: #666;">加载中...</div>
       </div>
     </div>
   </div>
@@ -474,6 +861,7 @@
         document.getElementById('current-start-time').textContent = '未设置';
         document.getElementById('current-end-time').textContent = '未设置';
         document.getElementById('current-status').textContent = '状态：未设置时间段';
+        document.getElementById('current-status').className = 'current-status status-inactive';
       }
     }
 
@@ -486,18 +874,21 @@
       document.getElementById('time-period-display').style.display = 'block';
       document.getElementById('time-period-form').style.display = 'none';
       document.getElementById('timePeriodResult').innerHTML = '';
+      document.getElementById('timePeriodResult').className = 'result-message';
     }
 
     document.getElementById('timePeriodForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const resultDiv = document.getElementById('timePeriodResult');
       resultDiv.innerHTML = '';
+      resultDiv.className = 'result-message';
 
       const startTime = document.getElementById('startTime').value;
       const endTime = document.getElementById('endTime').value;
 
       if (!startTime || !endTime) {
-        resultDiv.innerHTML = '<span style="color:red;">请填写开始和结束时间</span>';
+        resultDiv.innerHTML = '请填写开始和结束时间';
+        resultDiv.className = 'result-message result-error';
         return;
       }
 
@@ -506,12 +897,14 @@
       const endISO = new Date(endTime).toISOString();
 
       if (startISO >= endISO) {
-        resultDiv.innerHTML = '<span style="color:red;">结束时间必须晚于开始时间</span>';
+        resultDiv.innerHTML = '结束时间必须晚于开始时间';
+        resultDiv.className = 'result-message result-error';
         return;
       }
 
       try {
-        resultDiv.innerHTML = '<span style="color:blue;">正在保存...</span>';
+        resultDiv.innerHTML = '正在保存...';
+        resultDiv.className = 'result-message result-info';
         
         const res = await fetch(`${API_BASE}/teacher/time`, {
           method: 'POST',
@@ -531,17 +924,20 @@
         
         const data = await res.json();
         if (data.success) {
-          resultDiv.innerHTML = '<span style="color:green;">✅ 时间段设置成功！</span>';
+          resultDiv.innerHTML = '✅ 时间段设置成功！';
+          resultDiv.className = 'result-message result-success';
           setTimeout(() => {
             hideTimeForm();
             loadTimePeriod(); // 刷新显示
           }, 1500);
         } else {
-          resultDiv.innerHTML = `<span style="color:red;">❌ 设置失败：${data.message}</span>`;
+          resultDiv.innerHTML = `❌ 设置失败：${data.message}`;
+          resultDiv.className = 'result-message result-error';
         }
       } catch (err) {
         console.error('设置时间段失败:', err);
-        resultDiv.innerHTML = '<span style="color:red;">❌ 网络错误，请重试</span>';
+        resultDiv.innerHTML = '❌ 网络错误，请重试';
+        resultDiv.className = 'result-message result-error';
       }
     });
 
@@ -552,6 +948,7 @@
       event.preventDefault();
       const resultDiv = document.getElementById('singleGradeResult');
       resultDiv.innerHTML = '';
+      resultDiv.className = 'result-message';
 
       const studentId = document.getElementById('studentId').value.trim();
       const studentName = document.getElementById('studentName').value.trim() || '';
@@ -560,19 +957,23 @@
       const score = parseFloat(document.getElementById('score').value);
 
       if (!studentId) {
-        resultDiv.innerHTML = '<span style="color: red;">请输入学号</span>';
+        resultDiv.innerHTML = '请输入学号';
+        resultDiv.className = 'result-message result-error';
         return;
       }
       if (!courseName) {
-        resultDiv.innerHTML = '<span style="color: red;">请输入课程名称</span>';
+        resultDiv.innerHTML = '请输入课程名称';
+        resultDiv.className = 'result-message result-error';
         return;
       }
       if (!semester) {
-        resultDiv.innerHTML = '<span style="color: red;">请输入学期</span>';
+        resultDiv.innerHTML = '请输入学期';
+        resultDiv.className = 'result-message result-error';
         return;
       }
       if (isNaN(score) || score < 0 || score > 100) {
-        resultDiv.innerHTML = '<span style="color: red;">分数必须是 0 到 100 之间的数字</span>';
+        resultDiv.innerHTML = '分数必须是 0 到 100 之间的数字';
+        resultDiv.className = 'result-message result-error';
         return;
       }
 
@@ -588,7 +989,8 @@
       };
 
       try {
-        resultDiv.innerHTML = '<span style="color: blue;">正在保存...</span>';
+        resultDiv.innerHTML = '正在保存...';
+        resultDiv.className = 'result-message result-info';
         const response = await fetch(`${API_BASE}/teacher/upload_grades`, {
           method: 'POST',
           headers: {
@@ -599,14 +1001,17 @@
         });
         const result = await response.json();
         if (result.success) {
-          resultDiv.innerHTML = '<span style="color: green;">✅ 成绩保存成功！</span>';
+          resultDiv.innerHTML = '✅ 成绩保存成功！';
+          resultDiv.className = 'result-message result-success';
           document.getElementById('singleGradeForm').reset();
         } else {
-          resultDiv.innerHTML = `<span style="color: red;">❌ 保存失败：${result.message || '未知错误'}</span>`;
+          resultDiv.innerHTML = `❌ 保存失败：${result.message || '未知错误'}`;
+          resultDiv.className = 'result-message result-error';
         }
       } catch (err) {
         console.error('提交失败:', err);
-        resultDiv.innerHTML = '<span style="color: red;">❌ 网络错误，请重试</span>';
+        resultDiv.innerHTML = '❌ 网络错误，请重试';
+        resultDiv.className = 'result-message result-error';
       }
     });
 
@@ -620,36 +1025,43 @@
       const resultDiv = document.getElementById('bulkGradeResult');
 
       resultDiv.innerHTML = '';
+      resultDiv.className = 'result-message';
 
       if (!courseName) {
-        resultDiv.innerHTML = '<span style="color: red;">请输入课程名称</span>';
+        resultDiv.innerHTML = '请输入课程名称';
+        resultDiv.className = 'result-message result-error';
         return;
       }
       if (!semester) {
-        resultDiv.innerHTML = '<span style="color: red;">请输入学期</span>';
+        resultDiv.innerHTML = '请输入学期';
+        resultDiv.className = 'result-message result-error';
         return;
       }
       if (!fileInput.files[0]) {
-        resultDiv.innerHTML = '<span style="color: red;">请选择一个文件</span>';
+        resultDiv.innerHTML = '请选择一个文件';
+        resultDiv.className = 'result-message result-error';
         return;
       }
 
       const file = fileInput.files[0];
       const ext = file.name.split('.').pop().toLowerCase();
       if (!['xlsx', 'xls', 'csv'].includes(ext)) {
-        resultDiv.innerHTML = '<span style="color: red;">仅支持 .xlsx、.xls 或 .csv 文件</span>';
+        resultDiv.innerHTML = '仅支持 .xlsx、.xls 或 .csv 文件';
+        resultDiv.className = 'result-message result-error';
         return;
       }
 
       try {
-        resultDiv.innerHTML = '<span style="color: blue;">正在解析文件...</span>';
+        resultDiv.innerHTML = '正在解析文件...';
+        resultDiv.className = 'result-message result-info';
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
         if (jsonData.length < 2) {
-          resultDiv.innerHTML = '<span style="color: red;">文件为空或格式不正确</span>';
+          resultDiv.innerHTML = '文件为空或格式不正确';
+          resultDiv.className = 'result-message result-error';
           return;
         }
 
@@ -661,7 +1073,8 @@
         const scoreCol = headers.findIndex(h => /分数|score|grade/i.test(h));
 
         if (studentIdCol === -1 || scoreCol === -1) {
-          resultDiv.innerHTML = '<span style="color: red;">文件缺少"学号"或"分数"列</span>';
+          resultDiv.innerHTML = '文件缺少"学号"或"分数"列';
+          resultDiv.className = 'result-message result-error';
           return;
         }
 
@@ -678,11 +1091,13 @@
 
           if (typeof score === 'string') score = parseFloat(score.replace(/[%％]/g, ''));
           if (typeof score !== 'number' || isNaN(score)) {
-            resultDiv.innerHTML = `<span style="color: red;">第 ${i + 2} 行：分数格式错误（"${row[scoreCol]}"）</span>`;
+            resultDiv.innerHTML = `第 ${i + 2} 行：分数格式错误（"${row[scoreCol]}"）`;
+            resultDiv.className = 'result-message result-error';
             return;
           }
           if (score < 0 || score > 100) {
-            resultDiv.innerHTML = `<span style="color: red;">第 ${i + 2} 行：分数必须在 0–100 之间</span>`;
+            resultDiv.innerHTML = `第 ${i + 2} 行：分数必须在 0–100 之间`;
+            resultDiv.className = 'result-message result-error';
             return;
           }
 
@@ -696,11 +1111,13 @@
         }
 
         if (records.length === 0) {
-          resultDiv.innerHTML = '<span style="color: red;">未找到有效成绩数据</span>';
+          resultDiv.innerHTML = '未找到有效成绩数据';
+          resultDiv.className = 'result-message result-error';
           return;
         }
 
-        resultDiv.innerHTML = `<span style="color: blue;">正在上传 ${records.length} 条成绩...</span>`;
+        resultDiv.innerHTML = `正在上传 ${records.length} 条成绩...`;
+        resultDiv.className = 'result-message result-info';
 
         const payload = {
           type: 'bulk',
@@ -718,17 +1135,20 @@
 
         const result = await response.json();
         if (result.success) {
-          resultDiv.innerHTML = `<span style="color: green;">✅ 成功上传 ${records.length} 条成绩！</span>`;
+          resultDiv.innerHTML = `✅ 成功上传 ${records.length} 条成绩！`;
+          resultDiv.className = 'result-message result-success';
           document.getElementById('gradeFile').value = '';
           document.getElementById('bulkCourseName').value = '';
           document.getElementById('bulkSemester').value = '';
         } else {
-          resultDiv.innerHTML = `<span style="color: red;">❌ 上传失败：${result.message || '未知错误'}</span>`;
+          resultDiv.innerHTML = `❌ 上传失败：${result.message || '未知错误'}`;
+          resultDiv.className = 'result-message result-error';
         }
 
       } catch (err) {
         console.error('文件解析失败:', err);
-        resultDiv.innerHTML = `<span style="color: red;">❌ 文件解析错误：${err.message}</span>`;
+        resultDiv.innerHTML = `❌ 文件解析错误：${err.message}`;
+        resultDiv.className = 'result-message result-error';
       }
     }
 
@@ -747,9 +1167,9 @@
 
         const list = document.getElementById('courses-list');
         list.innerHTML = data.data.map(course => `
-          <div class="course-item" onclick="loadCourseGrades('${course.course_name}', '${course.semester}')">
-            <strong>${course.course_name}</strong><br>
-            学期: ${course.semester} | 学生: ${course.student_count}人
+          <div class="course-card" onclick="loadCourseGrades('${course.course_name}', '${course.semester}')">
+            <h3>${course.course_name}</h3>
+            <p>学期: ${course.semester} | 学生: ${course.student_count}人</p>
           </div>
         `).join('');
       } catch (err) {
@@ -782,8 +1202,8 @@
               <input type="number" class="edit-input" value="${record.score}" min="0" max="100" style="display:none;">
             </td>
             <td class="actions">
-              <button onclick="toggleEdit(this, '${record.student_id}', '${record.course_semester}')">编辑</button>
-              <button onclick="deleteRecord('${record.student_id}', '${record.course_semester}')">删除</button>
+              <button class="btn-edit" onclick="toggleEdit(this, '${record.student_id}', '${record.course_semester}')">编辑</button>
+              <button class="btn-delete" onclick="deleteRecord('${record.student_id}', '${record.course_semester}')">删除</button>
             </td>
           </tr>
         `).join('');
@@ -812,6 +1232,7 @@
         text.style.display = 'none';
         input.style.display = 'inline';
         btn.innerText = '保存';
+        btn.className = 'btn-edit';
       } else {
         const newScore = parseFloat(input.value);
         if (isNaN(newScore) || newScore < 0 || newScore > 100) {
@@ -825,6 +1246,7 @@
             text.style.display = 'inline';
             input.style.display = 'none';
             btn.innerText = '编辑';
+            btn.className = 'btn-edit';
             scoreCell.dataset.score = newScore;
           })
           .catch(err => {
@@ -870,6 +1292,7 @@
       const tbody = document.getElementById('students-body');
       const msg = document.getElementById('students-load-message');
       try {
+        msg.style.display = 'block';
         const res = await fetch(`${API_BASE}/teacher/students`, {
           headers: { 'X-User-ID': user.id }
         });
@@ -889,15 +1312,15 @@
             <td class="name-cell" data-name="${s.name}">${s.name}</td>
             <td class="class-cell" data-class="${s.class}">${s.class}</td>
             <td class="actions">
-              <button onclick="editStudent('${s.id}', this)">编辑</button>
-              <button onclick="deleteStudent('${s.id}')" style="background:#e74c3c;">删除</button>
+              <button class="btn-edit" onclick="editStudent('${s.id}', this)">编辑</button>
+              <button class="btn-delete" onclick="deleteStudent('${s.id}')">删除</button>
             </td>
           </tr>
         `).join('');
         msg.style.display = 'none';
       } catch (err) {
         console.error('加载学生失败:', err);
-        msg.innerHTML = `<span style="color:red;">❌ 加载失败：${err.message}</span>`;
+        msg.innerHTML = '<div class="result-message result-error">❌ 加载失败：' + err.message + '</div>';
       }
     }
 
@@ -905,22 +1328,26 @@
   e.preventDefault();
   const resultDiv = document.getElementById('addStudentResult');
   resultDiv.innerHTML = '';
+  resultDiv.className = 'result-message';
 
   const id = document.getElementById('newStudentId').value.trim();
   const name = document.getElementById('newStudentName').value.trim();
   const cls = document.getElementById('newStudentClass').value.trim();
 
   if (!id || !name || !cls) {
-    resultDiv.innerHTML = '<span style="color:red;">请填写所有字段</span>';
+    resultDiv.innerHTML = '请填写所有字段';
+    resultDiv.className = 'result-message result-error';
     return;
   }
   if (!id.startsWith('S') || !/^\d+$/.test(id.slice(1))) {
-    resultDiv.innerHTML = '<span style="color:red;">学号格式应为 S+数字（如 S001）</span>';
+    resultDiv.innerHTML = '学号格式应为 S+数字（如 S001）';
+    resultDiv.className = 'result-message result-error';
     return;
   }
 
   try {
-    resultDiv.innerHTML = '<span style="color:blue;">正在添加...</span>';
+    resultDiv.innerHTML = '正在添加...';
+    resultDiv.className = 'result-message result-info';
     
     // 调试信息
     console.log('发送请求头 X-User-ID:', user.id);
@@ -940,15 +1367,18 @@
     console.log('响应数据:', data);
     
     if (data.success) {
-      resultDiv.innerHTML = '<span style="color:green;">✅ 添加成功！</span>';
+      resultDiv.innerHTML = '✅ 添加成功！';
+      resultDiv.className = 'result-message result-success';
       document.getElementById('addStudentForm').reset();
       loadStudents();
     } else {
-      resultDiv.innerHTML = `<span style="color:red;">❌ ${data.message}</span>`;
+      resultDiv.innerHTML = `❌ ${data.message}`;
+      resultDiv.className = 'result-message result-error';
     }
   } catch (err) {
     console.error('添加学生失败:', err);
-    resultDiv.innerHTML = '<span style="color:red;">❌ 网络错误，请检查控制台</span>';
+    resultDiv.innerHTML = '❌ 网络错误，请检查控制台';
+    resultDiv.className = 'result-message result-error';
   }
 });
 
@@ -961,9 +1391,10 @@
       const currentClass = classCell.dataset.class;
 
       if (btn.innerText === '编辑') {
-        nameCell.innerHTML = `<input type="text" value="${currentName}" class="edit-input" style="width:80px;">`;
-        classCell.innerHTML = `<input type="text" value="${currentClass}" class="edit-input" style="width:100px;">`;
+        nameCell.innerHTML = `<input type="text" value="${currentName}" class="edit-input">`;
+        classCell.innerHTML = `<input type="text" value="${currentClass}" class="edit-input">`;
         btn.innerText = '保存';
+        btn.className = 'btn-edit';
       } else {
         const newName = nameCell.querySelector('input').value.trim();
         const newClass = classCell.querySelector('input').value.trim();
@@ -980,6 +1411,7 @@
             classCell.innerHTML = newClass;
             classCell.dataset.class = newClass;
             btn.innerText = '编辑';
+            btn.className = 'btn-edit';
           })
           .catch(err => {
             alert('更新失败: ' + err.message);
@@ -988,6 +1420,7 @@
             classCell.innerHTML = currentClass;
             classCell.dataset.class = currentClass;
             btn.innerText = '编辑';
+            btn.className = 'btn-edit';
           });
       }
     }
